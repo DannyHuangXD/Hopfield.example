@@ -1,0 +1,357 @@
+<html>
+    <head>
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
+
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css" integrity="sha384-aUGj/X2zp5rLCbBxumKTCw2Z50WgIr1vs/PFN4praOTvYXWlVyh2UtNUU0KAUhAX" crossorigin="anonymous">
+
+        <style>
+            body{ 
+                background: url(http://i.imgur.com/Yxigntd.jpg) no-repeat center center fixed; 
+                -webkit-background-size: cover;
+                -moz-background-size: cover;
+                -o-background-size: cover;
+                background-size: cover;
+            }
+            .buttonText{
+                color: black;
+            }
+            .background{
+
+            }
+            h1{
+                color: #f6f6f6;
+                text-shadow: 4px 4px 4px #000; 
+            }
+            .grid { margin:1em auto; border-collapse:collapse }
+            .grid td {
+                cursor:pointer;
+                width:25px; height:25px;
+                border:1px solid #ccc;
+                text-align:center;
+                font-family:sans-serif; 
+                font-size:13px;
+                background-color: #FFFFFF;
+
+            }
+            .grid td.hovered {
+                background-color:yellow;
+                font-weight:bold; color:red;
+            }
+            .grid td:hover{
+                background-color: #55acee;
+            }
+        </style>
+    <title>Hopfield Network 25252</title>
+    </head>
+
+    <body>
+        <div class = "Title" style = "width: 500px; text-align: center; margin:auto;">
+            <div class = "Text">
+                <h1 align="center">Hopfield Network</h1>
+                <p align="center" style="text-shadow: 1px 1px 1px #000; color: #f6f6f6">
+                Draw your desired input pattern on the left-hand side.<br />
+                Press shift key to stop drawing or clear the grid your cursor's pointing at.<br />
+                </p>
+            </div>
+            <div class = "Blur">
+            </div>
+
+
+        </div>    
+        <tr><td>
+          <div align="center">
+            <table>
+                <tr>
+                    <p align="center">
+                         <input type="button" value="Run with synchronous method" name="Start1" onclick="runNetwork()">
+                         <input type="button" value="Synch 1" name="Start1" onclick="runNetworkByStep(1)">
+                         <input type="button" value="Synch 10" name="Start10" onclick="runNetworkByStep(10)">
+                         <input type="button" value="Synch 100" name="Start100" onclick="runNetworkByStep(100)">
+                    </p>
+                </tr>
+                <tr>
+                    <p align="center">
+                        <input type="button" value="Clear Grids" name="Clear" onclick="clearAll()">
+                        <input type="button" value="Learn" name="Learn" onclick="learnOnce()">
+                        <input type="button" value="Reset Network" name="Clear" onclick="resetAll()">
+                    </p>
+                </tr>
+                <tr>
+                    <p style="text-shadow: 1px 1px 1px #000; color: #f6f6f6"> Row Size 
+                        <input type="text" class = "buttonText" name="name" id="customRow" size="5px" maxlength="5px">
+                        Column Size
+                        <input type="text" class = "buttonText" name="name" id="customCol" size="5px" maxlength="5px">
+                        <input type="button" class = "buttonText" value="submit" onclick="changeGridSize()">
+                    </p>
+                </tr>
+            <tr>
+                <td id = "Form1" align = "center">
+                    <form name="energyForm_1"><p style="text-shadow: 1px 1px 1px #000; color: #f6f6f6; visibility: hidden;"> Input Energy</p>
+                    <input name="enera" size="15px" style="visibility:hidden;"></form>
+                </td>
+                <td style="width:100px;">
+                </td>
+                <td id = "Form2" align = "center">
+                    <form name="energyForm_2"><p style="text-shadow: 1px 1px 1px #000; color: #f6f6f6"> Output Energy</p>
+                    <input name="enerb" size="15px"></form>
+                </td>
+            </tr>
+            </table>
+          </div>
+        </td></tr>
+
+        <script language="javascript">
+
+            var inGrid = document.getElementsByClassName('hovered');
+            var outGrid = document.getElementsByClassName('oGrid');
+            var rowSize = 7;
+            var colSize = 5;
+            var nodeSize = rowSize * colSize;
+
+            var lastClicked;
+            var inputGrid = hoverGrid(rowSize,colSize,function(el,row,col,i){
+            if (!event.shiftKey)
+                el.className ='hovered';
+            else el.className ='iGrid';
+            });
+            var outputGrid = justGrid(rowSize, colSize);
+
+            document.getElementById("Form1").appendChild(inputGrid);
+            document.getElementById("Form2").appendChild(outputGrid);
+                 
+            function hoverGrid( rows, cols, callback ){
+                var i=0;
+                var grid = document.createElement('table');
+                grid.className = 'grid';
+                grid.setAttribute("align", "left");
+                for (var r = 0;r < rows; ++r){
+                    var tr = grid.appendChild(document.createElement('tr'));
+                    for (var c = 0;c < cols; ++c){
+                        var cell = tr.appendChild(document.createElement('td'));
+                        cell.setAttribute("onmouseover", "changeState( event," + r + "," + c + ")");
+                        cell.setAttribute("class", "iGrid");
+                        cell.setAttribute("name", "i" + r + "c"  + c + ")");
+                        cell.addEventListener('mouseover',(function(el,r,c,i){
+                            return function(){
+                                callback(el,r,c,i);
+                            }
+                        })(cell,r,c,i),false);            
+                    }
+                }
+                return grid;
+            }
+            function justGrid ( rows, cols ){
+                 var i = 0;
+                var grid = document.createElement('table');
+                grid.className = 'grid';
+                grid.setAttribute("align", "right");
+                for (var r = 0;r < rows; ++r){
+                    var tr = grid.appendChild(document.createElement('tr'));
+                    for (var c = 0;c < cols; ++c){
+                        var cell = tr.appendChild(document.createElement('td'));
+                        cell.setAttribute("id",  r.toString() + c.toString() );
+
+                        cell.setAttribute("class", "oGrid");
+                    }
+                }
+                return grid;
+            }
+
+
+
+            learningRate = 0.35;
+            nodes = new Array(nodeSize);
+            synapses = new Array(nodeSize);
+            
+            // initiaize arrays
+
+            for(i = 0; i < nodeSize; i++){
+            nodes[i] = -1;
+            synapses[i] = new Array(nodeSize);
+
+            for(j = 0; j < nodeSize; j++){
+                 synapses[i][j] = 0; 
+                }  
+            }
+
+            // Calculates the "energy" of the pattern
+            function Energy(level){
+            synapseSum = 0;
+            for( i = 0; i < nodeSize; i++){
+               for(j = 0; j < nodeSize; j++){
+                  synapseSum -= synapses[i][j] * nodes[j] * nodes[i]; 
+               }
+            }
+            energyStr_1 = "document.energyForm_1.enera.value = " + synapseSum;
+            energyStr_2 = "document.energyForm_2.enerb.value = " + synapseSum;
+            (level > 0) ? eval(energyStr_2) : eval(energyStr_1); 
+            }
+
+
+            function changeState(event,row,col) {
+            ind = row * colSize + col;
+            if(!event.shiftKey){
+               nodes[ind] = 1;
+            }
+            else{
+               nodes[ind] = -1;
+            }
+            Energy(0);
+            }
+            function showState() { // show current state in outp
+                col = -1;
+                row = 0 ;
+                for(i = 0; i < nodeSize; i++){
+                    col++;
+                    if(col == colSize){
+                        row++; col = 0;
+                    }
+                if(nodes[i] == 1) document.getElementById(row.toString()+col.toString()).style["background-color"] = "#55acee";
+                else document.getElementById(row.toString()+col.toString()).style["background-color"] = "white";
+                }  
+            }
+
+            function clearAll(){
+                row = 0;
+                col = -1;
+                console.log(colSize, rowSize)
+                for(i = 0; i < nodeSize; i++){
+                    col++;
+                    if (col == colSize){
+                        row++; col = 0;
+                    }
+                    nodes[i] = -1;
+                    document.getElementById(row.toString()+col.toString()).style["background-color"] = "white";
+                } 
+                changeClass (inGrid);
+                Energy(0);
+                Energy(1); 
+           }
+
+            function clearInput(){
+                row = 0;
+                col = -1;
+                for(i = 0; i < nodeSize; i++){
+                    col++;
+                    if(col == colSize){
+                    row++; col = 0; 
+                    }
+                nodes[i] = -1;
+                } 
+                changeClass (inGrid);
+            }
+
+            function resetAll() {
+                clearAll()
+                for(i = 0; i < nodeSize; i++) {
+                    for(j = 0; j < nodeSize; j++){
+                       synapses[i][j] = 0; 
+                    }  
+                }
+                Energy(0);
+                Energy(1);
+
+                changeClass (inGrid);
+                for (i = 0; i < colSize; ++i){
+                    for (j = 0; j < rowSize; ++j){
+                        document.getElementById(j.toString()+i.toString()).style["background-color"] = "white";
+                    }
+                }
+            }
+
+            function learnOnce() { 
+                console.log(nodeSize)
+                for(i = 0; i < nodeSize; i++) {
+                    for(j = 0; j < nodeSize; j++){
+                        synapses[i][j] += learningRate * nodes[i] * nodes[j]; 
+                    }
+                }
+                showState();
+                Energy(1);
+                clearInput();
+            }
+
+            function runOnce(){
+                for(col = 0; col < colSize; col++){
+                    for(row = 0; row < rowSize; row++){
+                        ind = row * colSize + col;
+                        synapseSum = 0;
+                    for (j = 0; j < nodeSize; j++){
+                        synapseSum = synapseSum + synapses[ind][j]*nodes[j]; 
+                    }
+                    if(synapseSum > 0) 
+                        nodes[ind] = 1;
+                    else 
+                        nodes[ind] = -1;
+                    }
+                }
+            }
+
+            function runEvenMore(){
+                row = Math.floor (rowSize * Math.random());
+                col = Math.floor (colSize * Math.random());
+                ind = row * colSize + col;
+
+                synapseSum = 0;
+                for(j = 0; j < nodeSize; j++){
+                  synapseSum += synapses[ind][j]*nodes[j];
+                }
+                (synapseSum > 0) ? nodes[ind] = 1 : nodes[ind] = -1;
+            }
+
+            function runNetwork(){
+                runOnce();
+                showState();
+                Energy(1);
+            }
+
+            function runNetworkByStep(times){
+                showState();
+                for(i = 0; i < times; i++){
+                    runEvenMore();
+                }
+                showState();
+                Energy(1);
+            }
+            function changeClass(grids, mode){
+                while(grids.length){
+                    grids[0].className = 'iGrid';
+                    }
+            }
+            function changeGridSize(){
+                document.getElementById("Form1").removeChild(document.getElementsByClassName("grid")[0]);
+                document.getElementById("Form2").removeChild(document.getElementsByClassName("grid")[0]);
+                rowSize = document.getElementById("customRow").value;
+                colSize = document.getElementById("customCol").value;
+                nodeSize = rowSize * colSize;
+                nodes = new Array(nodeSize);
+                synapses = new Array(nodeSize);
+                
+                // reinitiaize arrays
+
+                for(i = 0; i < nodeSize; i++){
+                nodes[i] = -1;
+                synapses[i] = new Array(nodeSize);
+
+                for(j = 0; j < nodeSize; j++){
+                     synapses[i][j] = 0; 
+                    }  
+                }            
+                inputGrid = hoverGrid(rowSize,colSize,function(el,row,col,i){
+                if (!event.shiftKey)
+                    el.className ='hovered';
+                else el.className ='iGrid';
+                });
+                outputGrid = justGrid(rowSize, colSize);
+
+                document.getElementById("Form1").appendChild(inputGrid);
+                document.getElementById("Form2").appendChild(outputGrid);
+                resetAll();
+            }
+
+        </script>
+    </body>
+
+</html>
